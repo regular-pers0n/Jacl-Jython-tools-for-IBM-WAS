@@ -1,0 +1,1005 @@
+#Lang: Jacl
+ 
+#
+# resourcesInfo.jacl v0.11
+# Copyleft - 2013  Javier Dominguez Gomez
+# Written by Javier Dominguez Gomez <jdg@member.fsf.org>
+# GnuPG Key: 6ECD1616
+# Madrid, Spain
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Info:		This Tcl program extract all resources info using wsadmin IBM WebSphere Application Server tool.
+#
+# Usage:	./wsadmin -f resourcesInfo.jacl
+#
+ 
+set outputDir "/var/tmp/resourcesInfo"
+set cells [$AdminConfig list Cell]
+ 
+foreach cellId $cells {
+	set hostname [lindex [split [info hostname] .] 0]
+	set nodes [$AdminConfig list Node $cellId]
+	foreach nodeId $nodes {
+		set cname [$AdminConfig showAttribute $cellId name]
+		set nname [$AdminConfig showAttribute $nodeId name]
+		set node_dir "$outputDir/$nname"
+		if { [file exists $node_dir] != "1" } {file mkdir $node_dir}
+		puts ""
+		puts " ================================================="
+		puts "  Nodo: $nname"
+		puts " ================================================="
+		puts ""
+ 
+		###############################################################################################
+		# INICIO: SECCION LISTADO Y CONFIGURACION DE SCHEDULERS
+		###############################################################################################
+		puts " \[Lista de Schedulers\]"
+		puts ""
+		set schedulers [$AdminConfig list SchedulerConfiguration $cellId]
+		set schedulers_sort [lsort $schedulers]
+		foreach scheduler_id $schedulers_sort {
+ 
+			# La variable $allSchedulersProperties saca todas las propiedades posibles de un Scheduler
+			set allSchedulersProperties [$AdminConfig showall $scheduler_id]
+ 
+			# Variables basicas de cada Scheduler
+			set scheduler_ambito_split [lindex [split $scheduler_id |] 0]
+			set scheduler_ambito [lindex [split $scheduler_ambito_split (] 1]
+			set scheduler_name [$AdminConfig showAttribute $scheduler_id name]
+			set scheduler_jndiName [$AdminConfig showAttribute $scheduler_id jndiName]
+			set scheduler_category [$AdminConfig showAttribute $scheduler_id category]
+			set scheduler_datasourceJNDIName [$AdminConfig showAttribute $scheduler_id datasourceJNDIName]
+			set scheduler_datasourceAlias [$AdminConfig showAttribute $scheduler_id datasourceAlias]
+			set scheduler_tablePrefix [$AdminConfig showAttribute $scheduler_id tablePrefix]
+			set scheduler_pollInterval [$AdminConfig showAttribute $scheduler_id pollInterval]
+			set scheduler_workManagerInfoJNDIName [$AdminConfig showAttribute $scheduler_id workManagerInfoJNDIName]
+			set scheduler_useAdminRoles [$AdminConfig showAttribute $scheduler_id useAdminRoles]
+			set scheduler_dir "$node_dir/Schedulers"
+			if { [file exists $scheduler_dir] != "1" } {file mkdir $scheduler_dir}
+			set scheduler_out_log $scheduler_dir/$scheduler_name.log
+			set OUTPUT [open $scheduler_out_log w+]
+ 
+			puts " ================================="
+			puts "  Scheduler: $scheduler_name"
+			puts " ================================="
+			puts " Ambito:\t\t$scheduler_ambito"
+			puts " JNDI Name:\t\t$scheduler_jndiName"
+			puts " Category:\t\t$scheduler_category"
+			puts " Datasource JNDI Name:\t$scheduler_datasourceJNDIName"
+			puts " Datasource alias:\t$scheduler_datasourceAlias"
+			puts " Table prefix:\t\t$scheduler_tablePrefix"
+			puts " Pool interval:\t\t$scheduler_pollInterval"
+			puts " Workmanager JNDI name:\t$scheduler_workManagerInfoJNDIName"
+			puts " Admin roles:\t\t$scheduler_useAdminRoles"
+			puts " Propiedades:"
+			puts $OUTPUT " ================================="
+			puts $OUTPUT "  Scheduler: $scheduler_name"
+			puts $OUTPUT " ================================="
+			puts $OUTPUT " Ambito:\t\t$scheduler_ambito"
+			puts $OUTPUT " JNDI Name:\t\t$scheduler_jndiName"
+			puts $OUTPUT " Category:\t\t$scheduler_category"
+			puts $OUTPUT " Datasource JNDI Name:\t$scheduler_datasourceJNDIName"
+			puts $OUTPUT " Datasource alias:\t$scheduler_datasourceAlias"
+			puts $OUTPUT " Table prefix:\t\t$scheduler_tablePrefix"
+			puts $OUTPUT " Pool interval:\t\t$scheduler_pollInterval"
+			puts $OUTPUT " Workmanager JNDI name:\t$scheduler_workManagerInfoJNDIName"
+			puts $OUTPUT " Admin roles:\t\t$scheduler_useAdminRoles"
+			puts $OUTPUT " Propiedades:"
+			set scheduler_resourceProperties [$AdminConfig list J2EEResourceProperty $scheduler_id]
+			set scheduler_resourceProperties_sort [lsort $scheduler_resourceProperties]
+			foreach schedulerResourceProperty $scheduler_resourceProperties_sort {
+ 
+				# La variable $allJ2CAdmObjResourcePropertyProperties saca todas las custom properties posibles de un Scheduler
+				set allSchedulerResourcePropertyProperties [$AdminConfig showall $schedulerResourceProperty]
+ 
+				set schedulerResourceProperty_name [$AdminConfig showAttribute $schedulerResourceProperty name]
+				set schedulerResourceProperty_value [$AdminConfig showAttribute $schedulerResourceProperty value]
+ 
+				puts " - Nombre:\t\t$schedulerResourceProperty_name"
+				puts " - Valor:\t\t$schedulerResourceProperty_value"
+				puts $OUTPUT " - Nombre:\t\t$schedulerResourceProperty_name"
+				puts $OUTPUT " - Valor:\t\t$schedulerResourceProperty_value"
+			}
+			puts ""
+			close $OUTPUT
+		}
+		###############################################################################################
+		# FIN: SECCION LISTADO Y CONFIGURACION DE SCHEDULERS
+		###############################################################################################
+ 
+		###############################################################################################
+		# INICIO: SECCION LISTADO Y CONFIGURACION DE OBJECT POOL MANAGERS
+		###############################################################################################
+		puts " \[Lista de Object pool managers\]"
+		puts ""
+		set objPoolMgr [$AdminConfig list ObjectPoolManagerInfo $cellId]
+		set objPoolMgr_sort [lsort $objPoolMgr]
+		foreach objPoolMgr_id $objPoolMgr_sort {
+ 
+			# La variable $allObjPoolMgrProperties saca todas las propiedades posibles de un Object pool manager
+			set allObjPoolMgrProperties [$AdminConfig showall $objPoolMgr_id]
+ 
+			# Variables basicas de cada Object pool manager
+			set objPoolMgr_ambito_split [lindex [split $objPoolMgr_id |] 0]
+			set objPoolMgr_ambito [lindex [split $objPoolMgr_ambito_split (] 1]
+			set objPoolMgr_name [$AdminConfig showAttribute $objPoolMgr_id name]
+			set objPoolMgr_jndiName [$AdminConfig showAttribute $objPoolMgr_id jndiName]
+			set objPoolMgr_category [$AdminConfig showAttribute $objPoolMgr_id category]
+			set objPoolMgr_dir "$node_dir/Object_pool_managers"
+			if { [file exists $objPoolMgr_dir] != "1" } {file mkdir $objPoolMgr_dir}
+			set objPoolMgr_out_log $objPoolMgr_dir/$objPoolMgr_name.log
+			set OUTPUT [open $objPoolMgr_out_log w+]
+ 
+			puts " ============================================="
+			puts "  Object pool manager: $objPoolMgr_name"
+			puts " ============================================="
+			puts " Ambito:\t\t$objPoolMgr_ambito"
+			puts " JNDI Name:\t\t$objPoolMgr_jndiName"
+			puts " Category:\t\t$objPoolMgr_category"
+			puts " Propiedades:"
+			puts $OUTPUT " ============================================="
+			puts $OUTPUT "  Object pool manager: $objPoolMgr_name"
+			puts $OUTPUT " ============================================="
+			puts $OUTPUT " Ambito:\t\t$objPoolMgr_ambito"
+			puts $OUTPUT " JNDI Name:\t\t$objPoolMgr_jndiName"
+			puts $OUTPUT " Category:\t\t$objPoolMgr_category"
+			puts $OUTPUT " Propiedades:"
+			set objPoolMgr_resourceProperties [$AdminConfig list J2EEResourceProperty $objPoolMgr_id]
+			set objPoolMgr_resourceProperties_sort [lsort $objPoolMgr_resourceProperties]
+			foreach objPoolMgrResourceProperty $objPoolMgr_resourceProperties_sort {
+ 
+				# La variable $allObjPoolMgrResourcePropertyProperties saca todas las custom properties posibles de un Object pool manager
+				set allObjPoolMgrResourcePropertyProperties [$AdminConfig showall $objPoolMgrResourceProperty]
+ 
+				set objPoolMgrResourceProperty_name [$AdminConfig showAttribute $objPoolMgrResourceProperty name]
+				set objPoolMgrResourceProperty_value [$AdminConfig showAttribute $objPoolMgrResourceProperty value]
+ 
+				puts " - Nombre:\t\t$objPoolMgrResourceProperty_name"
+				puts " - Valor:\t\t$objPoolMgrResourceProperty_value"
+				puts $OUTPUT " - Nombre:\t\t$objPoolMgrResourceProperty_name"
+				puts $OUTPUT " - Valor:\t\t$objPoolMgrResourceProperty_value"
+			}
+			puts " Custom Object Pools:"
+			puts $OUTPUT " Custom Object Pools:"
+			set objPoolMgr_objectPools [lindex [$AdminConfig showAttribute $objPoolMgr_id objectPools] 0]
+			foreach objPoolMgrObjectPoolResourceProperty $objPoolMgr_objectPools {
+ 
+				# La variable $allObjPoolMgrObjectPoolResourcePropertyProperties saca todas las custom properties posibles de un Object pool manager
+				set allObjPoolMgrObjectPoolResourcePropertyProperties [$AdminConfig showall $objPoolMgrObjectPoolResourceProperty]
+ 
+				set objPoolMgrObjectPoolResourceProperty_poolClassName [$AdminConfig showAttribute $objPoolMgrObjectPoolResourceProperty poolClassName]
+				set objPoolMgrObjectPoolResourceProperty_poolImplClassName [$AdminConfig showAttribute $objPoolMgrObjectPoolResourceProperty poolImplClassName]
+				set objPoolMgrObjectPoolResourceProperty_properties [lindex [$AdminConfig showAttribute $objPoolMgrObjectPoolResourceProperty properties] 0]
+ 
+				puts " - P. class name:\t$objPoolMgrObjectPoolResourceProperty_poolClassName"
+				puts " - P. imp. class name:\t$objPoolMgrObjectPoolResourceProperty_poolImplClassName"
+				puts $OUTPUT " - P. class name:\t$objPoolMgrObjectPoolResourceProperty_poolClassName"
+				puts $OUTPUT " - P. imp. class name:\t$objPoolMgrObjectPoolResourceProperty_poolImplClassName"
+ 
+				if {[string length $objPoolMgrObjectPoolResourceProperty_properties ] != 0} {
+					puts " - Properties:"
+					puts $OUTPUT " - Properties:"
+					foreach objPoolMgrObjectPoolResourceProperty_properties2 $objPoolMgrObjectPoolResourceProperty_properties {
+						set objPoolMgrObjectPoolResourceProperty_properties2_name [$AdminConfig showAttribute $objPoolMgrObjectPoolResourceProperty_properties2 name]
+						set objPoolMgrObjectPoolResourceProperty_properties2_value [$AdminConfig showAttribute $objPoolMgrObjectPoolResourceProperty_properties2 value]
+						puts "   - Nombre:\t\t$objPoolMgrObjectPoolResourceProperty_properties2_name"
+						puts "   - Valor:\t\t$objPoolMgrObjectPoolResourceProperty_properties2_value"
+						puts $OUTPUT "   - Nombre:\t\t$objPoolMgrObjectPoolResourceProperty_properties2_name"
+						puts $OUTPUT "   - Valor:\t\t$objPoolMgrObjectPoolResourceProperty_properties2_value"
+					}
+				}
+			}
+			puts ""
+			close $OUTPUT
+		}
+		###############################################################################################
+		# FIN: SECCION LISTADO Y CONFIGURACION DE OBJECT POOL MANAGERS
+		###############################################################################################
+ 
+		###############################################################################################
+		# INICIO: SECCION LISTADO Y CONFIGURACION DE CONNECTION FACTORIES
+		###############################################################################################
+		puts " \[Lista de Connection factories\]"
+		puts ""
+ 
+		# Bloque para los Connection factories de tipo "Default messaging provider"
+		set conFact_SibJMS [$AdminTask listSIBJMSConnectionFactories $cellId]
+		set conFact_SibJMS_sort [lsort $conFact_SibJMS]
+		foreach conFact_SibJMS_id $conFact_SibJMS_sort {
+ 
+			# La variable $allConFact_SibJMSProperties saca todas las propiedades posibles de un Connection factory de tipo SIB JMS
+			set allConFact_SibJMSProperties [$AdminConfig showall $conFact_SibJMS_id]
+ 
+			# Variables basicas de cada Object pool manager
+			set conFact_SibJMS_ambito_split [lindex [split $conFact_SibJMS_id |] 0]
+			set conFact_SibJMS_ambito [lindex [split $conFact_SibJMS_ambito_split (] 1]
+			set conFact_SibJMS_name [$AdminConfig showAttribute $conFact_SibJMS_id name]
+			set conFact_SibJMS_provider "Default messaging provider"
+			set conFact_SibJMS_jndiName [$AdminConfig showAttribute $conFact_SibJMS_id jndiName]
+			set conFact_SibJMS_category [$AdminConfig showAttribute $conFact_SibJMS_id category]
+ 
+			set conFact_SibJMS_dir "$node_dir/Connection_factories"
+			if { [file exists $conFact_SibJMS_dir] != "1" } {file mkdir $conFact_SibJMS_dir}
+			set objPoolMgr_out_log $conFact_SibJMS_dir/$conFact_SibJMS_name.log
+			set OUTPUT [open $objPoolMgr_out_log w+]
+ 
+			puts " =================================================================="
+			puts "  Connection factory: $conFact_SibJMS_name"
+			puts " =================================================================="
+			puts " Ambito:\t\t$conFact_SibJMS_ambito"
+			puts " Provider:\t\t$conFact_SibJMS_provider"
+			puts " JNDI Name:\t\t$conFact_SibJMS_jndiName"
+			puts " Category:\t\t$conFact_SibJMS_category"
+			puts $OUTPUT " =================================================================="
+			puts $OUTPUT "  Connection factory: $conFact_SibJMS_name"
+			puts $OUTPUT " =================================================================="
+			puts $OUTPUT " Ambito:\t\t$conFact_SibJMS_ambito"
+			puts $OUTPUT " Provider:\t\t$conFact_SibJMS_provider"
+			puts $OUTPUT " JNDI Name:\t\t$conFact_SibJMS_jndiName"
+			puts $OUTPUT " Category:\t\t$conFact_SibJMS_category"
+ 
+			puts " Datos de \"Connection pool\":"
+			puts $OUTPUT " Datos de \"Connection pool\":"
+ 
+			# Variables del Connection Pool de cada Connection Factory
+			set conFact_SibJMS_connectionPool_id [$AdminConfig showAttribute $conFact_SibJMS_id connectionPool]
+			set conFact_SibJMS_cp_connectionTimeout [$AdminConfig showAttribute $conFact_SibJMS_connectionPool_id connectionTimeout]
+			set conFact_SibJMS_cp_maxConnections [$AdminConfig showAttribute $conFact_SibJMS_connectionPool_id maxConnections]
+			set conFact_SibJMS_cp_minConnections [$AdminConfig showAttribute $conFact_SibJMS_connectionPool_id minConnections]
+			set conFact_SibJMS_cp_reapTime [$AdminConfig showAttribute $conFact_SibJMS_connectionPool_id reapTime]
+			set conFact_SibJMS_cp_unusedTimeout [$AdminConfig showAttribute $conFact_SibJMS_connectionPool_id unusedTimeout]
+			set conFact_SibJMS_cp_agedTimeout [$AdminConfig showAttribute $conFact_SibJMS_connectionPool_id agedTimeout]
+			set conFact_SibJMS_cp_purgePolicy [$AdminConfig showAttribute $conFact_SibJMS_connectionPool_id purgePolicy]
+ 
+			puts " - Timeout:\t\t$conFact_SibJMS_cp_connectionTimeout"
+			puts " - Conexiones max.:\t$conFact_SibJMS_cp_maxConnections"
+			puts " - Conexiones min.:\t$conFact_SibJMS_cp_minConnections"
+			puts " - Reap time:\t\t$conFact_SibJMS_cp_reapTime"
+			puts " - Unused timeout:\t$conFact_SibJMS_cp_unusedTimeout"
+			puts " - Aged timeout:\t$conFact_SibJMS_cp_agedTimeout"
+			puts " - Purge policy:\t$conFact_SibJMS_cp_purgePolicy"
+			puts $OUTPUT " - Timeout:\t\t$conFact_SibJMS_cp_connectionTimeout"
+			puts $OUTPUT " - Conexiones max.:\t$conFact_SibJMS_cp_maxConnections"
+			puts $OUTPUT " - Conexiones min.:\t$conFact_SibJMS_cp_minConnections"
+			puts $OUTPUT " - Reap time:\t\t$conFact_SibJMS_cp_reapTime"
+			puts $OUTPUT " - Unused timeout:\t$conFact_SibJMS_cp_unusedTimeout"
+			puts $OUTPUT " - Aged timeout:\t$conFact_SibJMS_cp_agedTimeout"
+			puts $OUTPUT " - Purge policy:\t$conFact_SibJMS_cp_purgePolicy"
+ 
+			puts " Propiedades:"
+			puts $OUTPUT " Propiedades:"
+ 
+			set conFact_SibJMS_propertySet [$AdminConfig showAttribute $conFact_SibJMS_id propertySet]
+			set conFact_SibJMS_resourceProperties [lindex [$AdminConfig showAttribute $conFact_SibJMS_propertySet resourceProperties] 0]
+			set conFact_SibJMS_resourceProperties_sort [lsort $conFact_SibJMS_resourceProperties]
+			foreach objPoolMgrResourceProperty $conFact_SibJMS_resourceProperties_sort {
+ 
+				set objPoolMgrResourceProperty_name [$AdminConfig showAttribute $objPoolMgrResourceProperty name]
+				set objPoolMgrResourceProperty_value [$AdminConfig showAttribute $objPoolMgrResourceProperty value]
+ 
+				puts "   - Nombre:\t\t$objPoolMgrResourceProperty_name"
+				puts "   - Valor:\t\t$objPoolMgrResourceProperty_value"
+				puts $OUTPUT "   - Nombre:\t\t$objPoolMgrResourceProperty_name"
+				puts $OUTPUT "   - Valor:\t\t$objPoolMgrResourceProperty_value"
+			}
+			puts ""
+			close $OUTPUT
+		}
+ 
+		# Bloque para los Connection factories de tipo "WebSphere MQ messaging provider"
+		set conFact_MQ [$AdminConfig list MQConnectionFactory $cellId]
+		set conFact_MQ_sort [lsort $conFact_MQ]
+		foreach conFact_MQ_id $conFact_MQ_sort {
+ 
+			# La variable $allconFact_MQProperties saca todas las propiedades posibles de un Connection factory de tipo MQ
+			set allconFact_MQProperties [$AdminConfig showall $conFact_MQ_id]
+ 
+			# Variables basicas de cada Object pool manager
+			set conFact_MQ_ambito_split [lindex [split $conFact_MQ_id |] 0]
+			set conFact_MQ_ambito [lindex [split $conFact_MQ_ambito_split (] 1]
+			set conFact_MQ_name [$AdminConfig showAttribute $conFact_MQ_id name]
+			set conFact_MQ_provider "WebSphere MQ messaging provider"
+			set conFact_MQ_jndiName [$AdminConfig showAttribute $conFact_MQ_id jndiName]
+			set conFact_MQ_queueManager [$AdminConfig showAttribute $conFact_MQ_id queueManager]
+			set conFact_MQ_transportType [$AdminConfig showAttribute $conFact_MQ_id transportType]
+			set conFact_MQ_host [$AdminConfig showAttribute $conFact_MQ_id host]
+			set conFact_MQ_port [$AdminConfig showAttribute $conFact_MQ_id port]
+			set conFact_MQ_channel [$AdminConfig showAttribute $conFact_MQ_id channel]
+			set conFact_MQ_dir "$node_dir/Connection_factories"
+			if { [file exists $conFact_MQ_dir] != "1" } {file mkdir $conFact_MQ_dir}
+			set conFact_MQ_out_log $conFact_MQ_dir/$conFact_MQ_name.log
+			set OUTPUT [open $conFact_MQ_out_log w+]
+ 
+			puts " ========================================================="
+			puts "  Connection factory: $conFact_MQ_name"
+			puts " ========================================================="
+			puts " Ambito:\t\t$conFact_MQ_ambito"
+			puts " Provider:\t\t$conFact_MQ_provider"
+			puts " JNDI Name:\t\t$conFact_MQ_jndiName"
+			puts " Queue manager:\t\t$conFact_MQ_queueManager"
+			puts " Transport type:\t$conFact_MQ_transportType"
+			puts " Host:\t\t\t$conFact_MQ_host"
+			puts " Puerto:\t\t$conFact_MQ_port"
+			puts " Canal:\t\t\t$conFact_MQ_channel"
+			puts $OUTPUT " ========================================================="
+			puts $OUTPUT "  Connection factory: $conFact_MQ_name"
+			puts $OUTPUT " ========================================================="
+			puts $OUTPUT " Ambito:\t\t$conFact_MQ_ambito"
+			puts $OUTPUT " Provider:\t\t$conFact_MQ_provider"
+			puts $OUTPUT " JNDI Name:\t\t$conFact_MQ_jndiName"
+			puts $OUTPUT " Queue manager:\t\t$conFact_MQ_queueManager"
+			puts $OUTPUT " Transport type:\t$conFact_MQ_transportType"
+			puts $OUTPUT " Host:\t\t\t$conFact_MQ_host"
+			puts $OUTPUT " Puerto:\t\t$conFact_MQ_port"
+			puts $OUTPUT " Canal:\t\t\t$conFact_MQ_channel"
+ 
+			puts "\n Advanced properties:"
+			puts $OUTPUT "\n Advanced properties:"
+ 
+			# Variables de la seccion "Advanced properties" de cada Connection Factory
+			set conFact_MQ_ap_clientReconnectOptions [$AdminConfig showAttribute $conFact_MQ_id clientReconnectOptions]
+			set conFact_MQ_ap_clientReconnectTimeout [$AdminConfig showAttribute $conFact_MQ_id clientReconnectTimeout]
+			set conFact_MQ_ap_compressHeaders [$AdminConfig showAttribute $conFact_MQ_id compressHeaders]
+			set conFact_MQ_ap_compressPayload [$AdminConfig showAttribute $conFact_MQ_id compressPayload]
+			set conFact_MQ_ap_tempModel [$AdminConfig showAttribute $conFact_MQ_id tempModel]
+			set conFact_MQ_ap_tempQueuePrefix [$AdminConfig showAttribute $conFact_MQ_id tempQueuePrefix]
+			set conFact_MQ_ap_tempTopicPrefix [$AdminConfig showAttribute $conFact_MQ_id tempTopicPrefix]
+			set conFact_MQ_ap_msgRetention [$AdminConfig showAttribute $conFact_MQ_id msgRetention]
+			set conFact_MQ_ap_pollingInterval [$AdminConfig showAttribute $conFact_MQ_id pollingInterval]
+			set conFact_MQ_ap_rescanInterval [$AdminConfig showAttribute $conFact_MQ_id rescanInterval]
+			set conFact_MQ_ap_maxBatchSize [$AdminConfig showAttribute $conFact_MQ_id maxBatchSize]
+			set conFact_MQ_ap_CCSID [$AdminConfig showAttribute $conFact_MQ_id CCSID]
+			set conFact_MQ_ap_replyWithRFH2 [$AdminConfig showAttribute $conFact_MQ_id replyWithRFH2]
+			set conFact_MQ_ap_failIfQuiesce [$AdminConfig showAttribute $conFact_MQ_id failIfQuiesce]
+ 
+			puts " - Client rec. options:\t$conFact_MQ_ap_clientReconnectOptions"
+			puts " - Client rec. timeout:\t$conFact_MQ_ap_clientReconnectTimeout"
+			puts " - Comp. msg. headers:\t$conFact_MQ_ap_compressHeaders"
+			puts " - Comp. algorithm:\t$conFact_MQ_ap_compressPayload"
+			puts " - MQ model queue name:\t$conFact_MQ_ap_tempModel"
+			puts " - Temp. queue prefix:\t$conFact_MQ_ap_tempQueuePrefix"
+			puts " - Temp. topic prefix:\t$conFact_MQ_ap_tempTopicPrefix"
+			puts " - Retain messages:\t$conFact_MQ_ap_msgRetention"
+			puts " - Pooling interval:\t$conFact_MQ_ap_pollingInterval"
+			puts " - Rescan interval:\t$conFact_MQ_ap_rescanInterval"
+			puts " - Max. batch size:\t$conFact_MQ_ap_maxBatchSize"
+			puts " - Coded character:\t$conFact_MQ_ap_CCSID"
+			puts " - Append an RFH:\t$conFact_MQ_ap_replyWithRFH2"
+			puts " - Fail JMS method:\t$conFact_MQ_ap_failIfQuiesce"
+			puts $OUTPUT " - Client rec. options:\t$conFact_MQ_ap_clientReconnectOptions"
+			puts $OUTPUT " - Client rec. timeout:\t$conFact_MQ_ap_clientReconnectTimeout"
+			puts $OUTPUT " - Comp. msg. headers:\t$conFact_MQ_ap_compressHeaders"
+			puts $OUTPUT " - Comp. algorithm:\t$conFact_MQ_ap_compressPayload"
+			puts $OUTPUT " - MQ model queue name:\t$conFact_MQ_ap_tempModel"
+			puts $OUTPUT " - Temp. queue prefix:\t$conFact_MQ_ap_tempQueuePrefix"
+			puts $OUTPUT " - Temp. topic prefix:\t$conFact_MQ_ap_tempTopicPrefix"
+			puts $OUTPUT " - Retain messages:\t$conFact_MQ_ap_msgRetention"
+			puts $OUTPUT " - Pooling interval:\t$conFact_MQ_ap_pollingInterval"
+			puts $OUTPUT " - Rescan interval:\t$conFact_MQ_ap_rescanInterval"
+			puts $OUTPUT " - Max. batch size:\t$conFact_MQ_ap_maxBatchSize"
+			puts $OUTPUT " - Coded character:\t$conFact_MQ_ap_CCSID"
+			puts $OUTPUT " - Append an RFH:\t$conFact_MQ_ap_replyWithRFH2"
+			puts $OUTPUT " - Fail JMS method:\t$conFact_MQ_ap_failIfQuiesce"
+ 
+			puts "\n Datos de \"Broker properties\":"
+			puts $OUTPUT "\n Datos de \"Broker properties\":"
+ 
+			# Variables de la seccion "Broker properties" de cada Connection Factory
+			set conFact_MQ_bp_brokerControlQueue [$AdminConfig showAttribute $conFact_MQ_id brokerControlQueue]
+			set conFact_MQ_bp_brokerPubQueue [$AdminConfig showAttribute $conFact_MQ_id brokerPubQueue]
+			set conFact_MQ_bp_brokerSubQueue [$AdminConfig showAttribute $conFact_MQ_id brokerSubQueue]
+			set conFact_MQ_bp_brokerCCSubQ [$AdminConfig showAttribute $conFact_MQ_id brokerCCSubQ]
+			set conFact_MQ_bp_brokerVersion [$AdminConfig showAttribute $conFact_MQ_id brokerVersion]
+			set conFact_MQ_bp_msgSelection [$AdminConfig showAttribute $conFact_MQ_id msgSelection]
+			set conFact_MQ_bp_substore [$AdminConfig showAttribute $conFact_MQ_id substore]
+			set conFact_MQ_bp_statRefreshInterval [$AdminConfig showAttribute $conFact_MQ_id statRefreshInterval]
+			set conFact_MQ_bp_pubSubCleanup [$AdminConfig showAttribute $conFact_MQ_id pubSubCleanup]
+			set conFact_MQ_bp_pubSubCleanupInterval [$AdminConfig showAttribute $conFact_MQ_id pubSubCleanupInterval]
+			set conFact_MQ_bp_wildcardFormat [$AdminConfig showAttribute $conFact_MQ_id wildcardFormat]
+			set conFact_MQ_bp_publishAckInterval [$AdminConfig showAttribute $conFact_MQ_id publishAckInterval]
+			set conFact_MQ_bp_sparseSubscriptions [$AdminConfig showAttribute $conFact_MQ_id sparseSubscriptions]
+ 
+			puts " - Broker control:\t$conFact_MQ_bp_brokerControlQueue"
+			puts " - Broker publication:\t$conFact_MQ_bp_brokerPubQueue"
+			puts " - Broker subscriber:\t$conFact_MQ_bp_brokerSubQueue"
+			puts " - Broker con. consum.:\t$conFact_MQ_bp_brokerCCSubQ"
+			puts " - Broker version:\t$conFact_MQ_bp_brokerVersion"
+			puts " - Message selection:\t$conFact_MQ_bp_msgSelection"
+			puts " - Subscription store:\t$conFact_MQ_bp_substore"
+			puts " - Sub. refresh int.:\t$conFact_MQ_bp_statRefreshInterval"
+			puts " - Sub. clean level:\t$conFact_MQ_bp_pubSubCleanup"
+			puts " - Sub. clean int.:\t$conFact_MQ_bp_pubSubCleanupInterval"
+			puts " - Sub. wildcard f.:\t$conFact_MQ_bp_wildcardFormat"
+			puts " - Pub. acknowledgemnt:\t$conFact_MQ_bp_publishAckInterval"
+			puts " - Optimize for sparse:\t$conFact_MQ_bp_sparseSubscriptions"
+			puts $OUTPUT " - Broker control:\t$conFact_MQ_bp_brokerControlQueue"
+			puts $OUTPUT " - Broker publication:\t$conFact_MQ_bp_brokerPubQueue"
+			puts $OUTPUT " - Broker subscriber:\t$conFact_MQ_bp_brokerSubQueue"
+			puts $OUTPUT " - Broker con. consum.:\t$conFact_MQ_bp_brokerCCSubQ"
+			puts $OUTPUT " - Broker version:\t$conFact_MQ_bp_brokerVersion"
+			puts $OUTPUT " - Message selection:\t$conFact_MQ_bp_msgSelection"
+			puts $OUTPUT " - Subscription store:\t$conFact_MQ_bp_substore"
+			puts $OUTPUT " - Sub. refresh int.:\t$conFact_MQ_bp_statRefreshInterval"
+			puts $OUTPUT " - Sub. clean level:\t$conFact_MQ_bp_pubSubCleanup"
+			puts $OUTPUT " - Sub. clean int.:\t$conFact_MQ_bp_pubSubCleanupInterval"
+			puts $OUTPUT " - Sub. wildcard f.:\t$conFact_MQ_bp_wildcardFormat"
+			puts $OUTPUT " - Pub. acknowledgemnt:\t$conFact_MQ_bp_publishAckInterval"
+			puts $OUTPUT " - Optimize for sparse:\t$conFact_MQ_bp_sparseSubscriptions"
+ 
+			# Variables de las Custom properties de cada Connection factory
+			set conFact_MQ_cp_propertySet [$AdminConfig showAttribute $conFact_MQ_id propertySet]
+			if {[string length $conFact_MQ_cp_propertySet ] != 0} {
+				set conFact_MQ_cp_resourceProperties [lindex [$AdminConfig showAttribute $conFact_MQ_cp_propertySet resourceProperties] 0]
+				set conFact_MQ_cp_resourceProperties_sort [lsort $conFact_MQ_cp_resourceProperties]
+ 
+				puts "\n Custom properties:"
+				puts $OUTPUT "\n Custom properties:"
+ 
+				foreach conFact_MQ_cpResourceProperty $conFact_MQ_cp_resourceProperties_sort {
+					set conFact_MQ_cpResourceProperty_name [$AdminConfig showAttribute $conFact_MQ_cpResourceProperty name]
+					set conFact_MQ_cpResourceProperty_value [$AdminConfig showAttribute $conFact_MQ_cpResourceProperty value]
+ 
+					puts "   - Nombre:\t\t$conFact_MQ_cpResourceProperty_name"
+					puts "   - Valor:\t\t$conFact_MQ_cpResourceProperty_value"
+					puts $OUTPUT "   - Nombre:\t\t$conFact_MQ_cpResourceProperty_name"
+					puts $OUTPUT "   - Valor:\t\t$conFact_MQ_cpResourceProperty_value"
+				}
+			}
+ 
+			puts "\n Datos de \"Connection pool\":"
+			puts $OUTPUT "\n Datos de \"Connection pool\":"
+ 
+			# Variables del Connection Pool de cada Connection Factory
+			set conFact_MQ_connectionPool_id [$AdminConfig showAttribute $conFact_MQ_id connectionPool]
+			set conFact_MQ_cp_connectionTimeout [$AdminConfig showAttribute $conFact_MQ_connectionPool_id connectionTimeout]
+			set conFact_MQ_cp_maxConnections [$AdminConfig showAttribute $conFact_MQ_connectionPool_id maxConnections]
+			set conFact_MQ_cp_minConnections [$AdminConfig showAttribute $conFact_MQ_connectionPool_id minConnections]
+			set conFact_MQ_cp_reapTime [$AdminConfig showAttribute $conFact_MQ_connectionPool_id reapTime]
+			set conFact_MQ_cp_unusedTimeout [$AdminConfig showAttribute $conFact_MQ_connectionPool_id unusedTimeout]
+			set conFact_MQ_cp_agedTimeout [$AdminConfig showAttribute $conFact_MQ_connectionPool_id agedTimeout]
+			set conFact_MQ_cp_purgePolicy [$AdminConfig showAttribute $conFact_MQ_connectionPool_id purgePolicy]
+ 
+			puts " - Timeout:\t\t$conFact_MQ_cp_connectionTimeout"
+			puts " - Conexiones max.:\t$conFact_MQ_cp_maxConnections"
+			puts " - Conexiones min.:\t$conFact_MQ_cp_minConnections"
+			puts " - Reap time:\t\t$conFact_MQ_cp_reapTime"
+			puts " - Unused timeout:\t$conFact_MQ_cp_unusedTimeout"
+			puts " - Aged timeout:\t$conFact_MQ_cp_agedTimeout"
+			puts " - Purge policy:\t$conFact_MQ_cp_purgePolicy"
+			puts $OUTPUT " - Timeout:\t\t$conFact_MQ_cp_connectionTimeout"
+			puts $OUTPUT " - Conexiones max.:\t$conFact_MQ_cp_maxConnections"
+			puts $OUTPUT " - Conexiones min.:\t$conFact_MQ_cp_minConnections"
+			puts $OUTPUT " - Reap time:\t\t$conFact_MQ_cp_reapTime"
+			puts $OUTPUT " - Unused timeout:\t$conFact_MQ_cp_unusedTimeout"
+			puts $OUTPUT " - Aged timeout:\t$conFact_MQ_cp_agedTimeout"
+			puts $OUTPUT " - Purge policy:\t$conFact_MQ_cp_purgePolicy"
+			puts ""
+			close $OUTPUT
+		}
+		###############################################################################################
+		# FIN: SECCION LISTADO Y CONFIGURACION DE CONNECTION FACTORIES
+		###############################################################################################
+ 
+		########################################################################
+		# INICIO: SECCION LISTADO Y CONFIGURACION DE QUEUE CONNECTION FACTORIES
+		########################################################################
+		puts " \[Lista de Queue Connection Factories\]"
+		puts ""
+		set JMS_MQQueueConnectionFactory [$AdminConfig list MQQueueConnectionFactory $cellId]
+		set JMS_MQQueueConnectionFactory_sort [lsort $JMS_MQQueueConnectionFactory]
+		foreach queueConnectionFactory_id $JMS_MQQueueConnectionFactory_sort {
+ 
+			# La variable $allConnectionFactoryProperties saca todas las propiedades posibles de una Connection Factory
+			set allConnectionFactoryProperties [$AdminConfig showall $queueConnectionFactory_id]
+ 
+			# Variables basicas de cada Queue Connection Factory
+			set queueConnectionFactory_ambito_split [lindex [split $queueConnectionFactory_id |] 0]
+			set queueConnectionFactory_ambito [lindex [split $queueConnectionFactory_ambito_split (] 1]
+			set queueConnectionFactory_provider_id [$AdminConfig showAttribute $queueConnectionFactory_id provider]
+			set queueConnectionFactory_provider_name [$AdminConfig showAttribute $queueConnectionFactory_provider_id name]
+			set queueConnectionFactory_name [$AdminConfig showAttribute $queueConnectionFactory_id name]
+			set queueConnectionFactory_jndiName [$AdminConfig showAttribute $queueConnectionFactory_id jndiName]
+			set queueConnectionFactory_queueManager [$AdminConfig showAttribute $queueConnectionFactory_id queueManager]
+			set queueConnectionFactory_channel [$AdminConfig showAttribute $queueConnectionFactory_id channel]
+			set queueConnectionFactory_host [$AdminConfig showAttribute $queueConnectionFactory_id host]
+			set queueConnectionFactory_port [$AdminConfig showAttribute $queueConnectionFactory_id port]
+			set queueConnectionFactory_transportType [$AdminConfig showAttribute $queueConnectionFactory_id transportType]
+			set queueConnectionFactory_dir "$node_dir/Queue_Connection_Factories"
+			if { [file exists $queueConnectionFactory_dir] != "1" } {file mkdir $queueConnectionFactory_dir}
+			set queueConnectionFactory_out_log $queueConnectionFactory_dir/$queueConnectionFactory_name.log
+			set OUTPUT [open $queueConnectionFactory_out_log w+]
+ 
+			# Variables del Connection Pool de cada Queue Connection Factory
+			set queueConnectionFactory_connectionPool_id [$AdminConfig showAttribute $queueConnectionFactory_id connectionPool]
+			set queueConnectionFactory_cp_connectionTimeout [$AdminConfig showAttribute $queueConnectionFactory_connectionPool_id connectionTimeout]
+			set queueConnectionFactory_cp_maxConnections [$AdminConfig showAttribute $queueConnectionFactory_connectionPool_id maxConnections]
+			set queueConnectionFactory_cp_minConnections [$AdminConfig showAttribute $queueConnectionFactory_connectionPool_id minConnections]
+			set queueConnectionFactory_cp_reapTime [$AdminConfig showAttribute $queueConnectionFactory_connectionPool_id reapTime]
+			set queueConnectionFactory_cp_unusedTimeout [$AdminConfig showAttribute $queueConnectionFactory_connectionPool_id unusedTimeout]
+			set queueConnectionFactory_cp_agedTimeout [$AdminConfig showAttribute $queueConnectionFactory_connectionPool_id agedTimeout]
+			set queueConnectionFactory_cp_purgePolicy [$AdminConfig showAttribute $queueConnectionFactory_connectionPool_id purgePolicy]
+ 
+			# Variables del Session Pool de cada Queue Connection Factory
+			set queueConnectionFactory_sessionPool_id [$AdminConfig showAttribute $queueConnectionFactory_id sessionPool]
+			set queueConnectionFactory_sp_connectionTimeout [$AdminConfig showAttribute $queueConnectionFactory_sessionPool_id connectionTimeout]
+			set queueConnectionFactory_sp_maxConnections [$AdminConfig showAttribute $queueConnectionFactory_sessionPool_id maxConnections]
+			set queueConnectionFactory_sp_minConnections [$AdminConfig showAttribute $queueConnectionFactory_sessionPool_id minConnections]
+			set queueConnectionFactory_sp_reapTime [$AdminConfig showAttribute $queueConnectionFactory_sessionPool_id reapTime]
+			set queueConnectionFactory_sp_unusedTimeout [$AdminConfig showAttribute $queueConnectionFactory_sessionPool_id unusedTimeout]
+			set queueConnectionFactory_sp_agedTimeout [$AdminConfig showAttribute $queueConnectionFactory_sessionPool_id agedTimeout]
+			set queueConnectionFactory_sp_purgePolicy [$AdminConfig showAttribute $queueConnectionFactory_sessionPool_id purgePolicy]
+ 
+			puts " ======================================================"
+			puts "  Queue Connection Factory: $queueConnectionFactory_name"
+			puts " ======================================================"
+			puts " Ambito:\t\t$queueConnectionFactory_ambito"
+			puts " Provider:\t\t$queueConnectionFactory_provider_name"
+			puts " JNDI Name:\t\t$queueConnectionFactory_jndiName"
+			puts " Queue manager:\t\t$queueConnectionFactory_queueManager"
+			puts " Channel:\t\t$queueConnectionFactory_channel"
+			puts " Host:\t\t\t$queueConnectionFactory_host"
+			puts " Puerto:\t\t$queueConnectionFactory_port"
+			puts " Transport type:\t$queueConnectionFactory_transportType"
+			puts " Datos de \"Connection pool\":"
+			puts " - Timeout:\t\t$queueConnectionFactory_cp_connectionTimeout"
+			puts " - Conexiones max.:\t$queueConnectionFactory_cp_maxConnections"
+			puts " - Conexiones min.:\t$queueConnectionFactory_cp_minConnections"
+			puts " - Reap time:\t\t$queueConnectionFactory_cp_reapTime"
+			puts " - Unused timeout:\t$queueConnectionFactory_cp_unusedTimeout"
+			puts " - Aged timeout:\t$queueConnectionFactory_cp_agedTimeout"
+			puts " - Purge policy:\t$queueConnectionFactory_cp_purgePolicy"
+			puts " Datos de \"Session pool\":"
+			puts " - Timeout:\t\t$queueConnectionFactory_sp_connectionTimeout"
+			puts " - Conexiones max.:\t$queueConnectionFactory_sp_maxConnections"
+			puts " - Conexiones min.:\t$queueConnectionFactory_sp_minConnections"
+			puts " - Reap time:\t\t$queueConnectionFactory_sp_reapTime"
+			puts " - Unused timeout:\t$queueConnectionFactory_sp_unusedTimeout"
+			puts " - Aged timeout:\t$queueConnectionFactory_sp_agedTimeout"
+			puts " - Purge policy:\t$queueConnectionFactory_sp_purgePolicy"
+			puts ""
+			puts $OUTPUT " ======================================================"
+			puts $OUTPUT "  Queue Connection Factory: $queueConnectionFactory_name"
+			puts $OUTPUT " ======================================================"
+			puts $OUTPUT " Ambito:\t\t$queueConnectionFactory_ambito"
+			puts $OUTPUT " Provider:\t\t$queueConnectionFactory_provider_name"
+			puts $OUTPUT " JNDI Name:\t\t$queueConnectionFactory_jndiName"
+			puts $OUTPUT " Queue manager:\t\t$queueConnectionFactory_queueManager"
+			puts $OUTPUT " Channel:\t\t$queueConnectionFactory_channel"
+			puts $OUTPUT " Host:\t\t\t$queueConnectionFactory_host"
+			puts $OUTPUT " Puerto:\t\t$queueConnectionFactory_port"
+			puts $OUTPUT " Transport type:\t$queueConnectionFactory_transportType"
+			puts $OUTPUT " Datos de \"Connection pool\":"
+			puts $OUTPUT " - Timeout:\t\t$queueConnectionFactory_cp_connectionTimeout"
+			puts $OUTPUT " - Conexiones max.:\t$queueConnectionFactory_cp_maxConnections"
+			puts $OUTPUT " - Conexiones min.:\t$queueConnectionFactory_cp_minConnections"
+			puts $OUTPUT " - Reap time:\t\t$queueConnectionFactory_cp_reapTime"
+			puts $OUTPUT " - Unused timeout:\t$queueConnectionFactory_cp_unusedTimeout"
+			puts $OUTPUT " - Aged timeout:\t$queueConnectionFactory_cp_agedTimeout"
+			puts $OUTPUT " - Purge policy:\t$queueConnectionFactory_cp_purgePolicy"
+			puts $OUTPUT " Datos de \"Session pool\":"
+			puts $OUTPUT " - Timeout:\t\t$queueConnectionFactory_sp_connectionTimeout"
+			puts $OUTPUT " - Conexiones max.:\t$queueConnectionFactory_sp_maxConnections"
+			puts $OUTPUT " - Conexiones min.:\t$queueConnectionFactory_sp_minConnections"
+			puts $OUTPUT " - Reap time:\t\t$queueConnectionFactory_sp_reapTime"
+			puts $OUTPUT " - Unused timeout:\t$queueConnectionFactory_sp_unusedTimeout"
+			puts $OUTPUT " - Aged timeout:\t$queueConnectionFactory_sp_agedTimeout"
+			puts $OUTPUT " - Purge policy:\t$queueConnectionFactory_sp_purgePolicy"
+			close $OUTPUT
+		}
+		#########################################################################
+		# FIN: SECCION LISTADO Y CONFIGURACION DE QUEUE CONNECTION FACTORIES
+		#########################################################################
+ 
+		########################################################################
+		# INICIO: SECCION LISTADO Y CONFIGURACION DE COLAS MQ
+		########################################################################
+		puts " \[Lista de Colas MQ\]"
+		puts ""
+		set JMS_MQQueue [$AdminConfig list MQQueue $cellId]
+		set JMS_MQQueue_sort [lsort $JMS_MQQueue]
+		foreach queue_id $JMS_MQQueue_sort {
+			# La variable $allQueueProperties saca todas las propiedades posibles de una Cola MQ
+			set allQueueProperties [$AdminConfig showall $queue_id]
+ 
+			# Variables basicas de cada Cola MQ
+			set queue_ambito_split [lindex [split $queue_id |] 0]
+			set queue_ambito [lindex [split $queue_ambito_split (] 1]
+			set queue_name [$AdminConfig showAttribute $queue_id name]
+			set queue_provider_id [$AdminConfig showAttribute $queue_id provider]
+			set queue_provider_name [$AdminConfig showAttribute $queue_provider_id name]
+			set queue_jndiName [$AdminConfig showAttribute $queue_id jndiName]
+			set queue_baseQueueName [$AdminConfig showAttribute $queue_id baseQueueName]
+			set queue_targetClient [$AdminConfig showAttribute $queue_id targetClient]
+			set queue_queueManagerHost [$AdminConfig showAttribute $queue_id queueManagerHost]
+			set queue_queueManagerPort [$AdminConfig showAttribute $queue_id queueManagerPort]
+			set queue_dir "$node_dir/Queues"
+			if { [file exists $queue_dir] != "1" } {file mkdir $queue_dir}
+			set queue_out_log $queue_dir/$queue_name.log
+			set OUTPUT [open $queue_out_log w+]
+ 
+			puts " ========================================"
+			puts "  Cola MQ: $queue_name"
+			puts " ========================================"
+			puts " Ambito:\t\t$queue_ambito"
+			puts " Provider:\t\t$queue_provider_name"
+			puts " JNDI Name:\t\t$queue_jndiName"
+			puts " Base queue name:\t$queue_baseQueueName"
+			puts " Target client:\t$queue_targetClient"
+			puts " Host:\t\t\t$queue_queueManagerHost"
+			puts " Puerto:\t\t$queue_queueManagerPort"
+			puts ""
+			puts $OUTPUT " ========================================"
+			puts $OUTPUT "  Cola MQ: $queue_name"
+			puts $OUTPUT " ========================================"
+			puts $OUTPUT " Ambito:\t\t$queue_ambito"
+			puts $OUTPUT " Provider:\t\t$queue_provider_name"
+			puts $OUTPUT " JNDI Name:\t\t$queue_jndiName"
+			puts $OUTPUT " Base queue name:\t$queue_baseQueueName"
+			puts $OUTPUT " Target client:\t$queue_targetClient"
+			puts $OUTPUT " Host:\t\t\t$queue_queueManagerHost"
+			puts $OUTPUT " Puerto:\t\t$queue_queueManagerPort"
+			close $OUTPUT
+		}
+		########################################################################
+		# FIN: SECCION LISTADO Y CONFIGURACION DE COLAS MQ
+		########################################################################
+ 
+		########################################################################
+		# INICIO: SECCION LISTADO Y CONFIGURACION DE JDBC PROVIDERS
+		########################################################################
+ 
+		puts " \[Lista de JDBC Providers\]"
+		puts ""
+		set jdbcProviders [$AdminConfig list JDBCProvider $cellId]
+		set jdbcProviders_sort [lsort $jdbcProviders]
+		foreach jdbcProvider_id $jdbcProviders_sort {
+			if {![regexp "OTiSDataSource" $jdbcProvider_id]} {
+ 
+				# La variable $allJdbcProvidersProperties saca todas las propiedades posibles de un JDBC Provider
+				set allJdbcProvidersProperties [$AdminConfig showall $jdbcProvider_id]
+ 
+				set jdbcProvider_ambito_split [lindex [split $jdbcProvider_id |] 0]
+				set jdbcProvider_ambito [lindex [split $jdbcProvider_ambito_split (] 1]
+				set jdbcProvider_name [$AdminConfig showAttribute $jdbcProvider_id name]
+				set jdbcProvider_description [$AdminConfig showAttribute $jdbcProvider_id description]
+				set jdbcProvider_classpath [$AdminConfig showAttribute $jdbcProvider_id classpath]
+				set jdbcProvider_nativepath [$AdminConfig showAttribute $jdbcProvider_id nativepath]
+				set jdbcProvider_implementationClassName [$AdminConfig showAttribute $jdbcProvider_id implementationClassName]
+				set jdbcProvider_providerType [$AdminConfig showAttribute $jdbcProvider_id providerType]
+				set jdbcProvider_xa [$AdminConfig showAttribute $jdbcProvider_id xa]
+				set jdbcProvider_dir "$node_dir/JDBC_Providers"
+				if { [file exists $jdbcProvider_dir] != "1" } {file mkdir $jdbcProvider_dir}
+				set jdbcProviders_out_log $jdbcProvider_dir/$jdbcProvider_name.log
+				set OUTPUT [open $jdbcProviders_out_log w+]
+ 
+				puts " ============================================="
+				puts "  JDBC Provider: $jdbcProvider_name"
+				puts " ============================================="
+				puts " Ambito:\t\t$jdbcProvider_ambito"
+				puts " Descripcion:\t\t$jdbcProvider_description"
+				puts " Classpath:\t\t$jdbcProvider_classpath"
+				puts " Native library path:\t$jdbcProvider_nativepath"
+				puts " Implementacion:\t$jdbcProvider_implementationClassName"
+				puts " Tipo de provider:\t$jdbcProvider_providerType"
+				puts " XA:\t\t\t$jdbcProvider_xa"
+				puts ""
+				puts $OUTPUT " ============================================="
+				puts $OUTPUT "  JDBC Provider: $jdbcProvider_name"
+				puts $OUTPUT " ============================================="
+				puts $OUTPUT " Ambito:\t\t$jdbcProvider_ambito"
+				puts $OUTPUT " Descripcion:\t\t$jdbcProvider_description"
+				puts $OUTPUT " Classpath:\t\t$jdbcProvider_classpath"
+				puts $OUTPUT " Native library path:\t$jdbcProvider_nativepath"
+				puts $OUTPUT " Implementacion:\t$jdbcProvider_implementationClassName"
+				puts $OUTPUT " Tipo de provider:\t$jdbcProvider_providerType"
+				puts $OUTPUT " XA:\t\t\t$jdbcProvider_xa"
+				close $OUTPUT
+			}
+		}
+ 
+		########################################################################
+		# FIN: SECCION LISTADO Y CONFIGURACION DE JDBC PROVIDERS
+		########################################################################
+ 
+		#######################################################################
+		# INICIO: SECCION LISTADO Y CONFIGURACION DE DATASOURCES
+		#######################################################################
+		puts " \[Lista de Datasources\]"
+		puts ""
+		set dataSources [$AdminConfig list DataSource $cellId]
+		set dataSources_sort [lsort $dataSources]
+ 
+		foreach dataSource_id $dataSources_sort {
+ 
+			# La variable $allDatasourceProperties saca todas las propiedades posibles de un Datasource
+			set allDatasourceProperties [$AdminConfig showall $dataSource_id]
+ 
+			# Variables basicas de cada Datasource
+			set dataSource_ambito_split [lindex [split $dataSource_id |] 0]
+			set dataSource_ambito [lindex [split $dataSource_ambito_split (] 1]
+			set dataSource_provider_id [$AdminConfig showAttribute $dataSource_id provider]
+			set dataSource_providerType [$AdminConfig showAttribute $dataSource_provider_id providerType]
+ 
+			set dataSource_provider_name [$AdminConfig showAttribute $dataSource_provider_id name]
+			set dataSource_name [$AdminConfig showAttribute $dataSource_id name]
+			set dataSource_jndiName [$AdminConfig showAttribute $dataSource_id jndiName]
+			set dataSource_description [$AdminConfig showAttribute $dataSource_id description]
+			set dataSource_datasourceHelperClassname [$AdminConfig showAttribute $dataSource_id datasourceHelperClassname]
+			set dataSource_authDataAlias [$AdminConfig showAttribute $dataSource_id authDataAlias]
+ 
+			if {![regexp "DefaultEJBTimerDataSource" $dataSource_name] && ![regexp "OTiSDataSource" $dataSource_name]} {
+				set connectionPool_list [$AdminConfig list ConnectionPool $dataSource_id]
+				set connectionPool_list_sort [lsort $connectionPool_list]
+				foreach connectionPool_id $connectionPool_list_sort {
+					set connectionPool_connectionTimeout [$AdminConfig showAttribute $connectionPool_id connectionTimeout]
+					set connectionPool_maxConnections [$AdminConfig showAttribute $connectionPool_id maxConnections]
+					set connectionPool_minConnections [$AdminConfig showAttribute $connectionPool_id minConnections]
+					set connectionPool_reapTime [$AdminConfig showAttribute $connectionPool_id reapTime]
+					set connectionPool_unusedTimeout [$AdminConfig showAttribute $connectionPool_id unusedTimeout]
+					set connectionPool_agedTimeout [$AdminConfig showAttribute $connectionPool_id agedTimeout]
+					set connectionPool_purgePolicy [$AdminConfig showAttribute $connectionPool_id purgePolicy]
+					set connectionPool_dir "$node_dir/Datasources"
+					if { [file exists $connectionPool_dir] != "1" } {file mkdir $connectionPool_dir}
+					set connectionPool_out_log $connectionPool_dir/$dataSource_name.log
+					set OUTPUT [open $connectionPool_out_log w+]
+ 
+					set connectionPool_out_jacl $connectionPool_dir/$dataSource_name.jacl
+					set OUTPUT_JACL [open $connectionPool_out_jacl w+]
+					puts $OUTPUT_JACL "\$AdminTask createDatasource $dataSource_provider_id \{ \\"
+					puts $OUTPUT_JACL "	-name $dataSource_name \\"
+					puts $OUTPUT_JACL "	-jndiName $dataSource_jndiName \\"
+					puts $OUTPUT_JACL "	-dataStoreHelperClassName $dataSource_datasourceHelperClassname \\"
+					puts $OUTPUT_JACL "	-containerManagedPersistence true \\"
+					puts $OUTPUT_JACL "	-componentManagedAuthenticationAlias \\"
+					puts $OUTPUT_JACL "	-configureResourceProperties \{ \\"
+ 
+					puts " ============================="
+					puts "  Datasource: $dataSource_name"
+					puts " ============================="
+					puts " Ambito:\t\t$dataSource_ambito"
+					puts " JNDI name:\t\t$dataSource_jndiName"
+					puts " Provider:\t\t$dataSource_provider_name"
+					puts " Descripcion:\t\t$dataSource_description"
+					puts " Helper class:\t\t$dataSource_datasourceHelperClassname"
+					puts " Alias de aut.:\t\t$dataSource_authDataAlias"
+					puts " Tipo de Provider:\t$dataSource_providerType"
+					puts " Propiedades:"
+					puts $OUTPUT " ============================="
+					puts $OUTPUT "  Datasource: $dataSource_name"
+					puts $OUTPUT " ============================="
+					puts $OUTPUT " Ambito:\t\t$dataSource_ambito"
+					puts $OUTPUT " JNDI name:\t\t$dataSource_jndiName"
+					puts $OUTPUT " Provider:\t\t$dataSource_provider_name"
+					puts $OUTPUT " Descripcion:\t\t$dataSource_description"
+					puts $OUTPUT " Helper class:\t\t$dataSource_datasourceHelperClassname"
+					puts $OUTPUT " Alias de aut.:\t\t$dataSource_authDataAlias"
+					puts $OUTPUT " Tipo de Provider:\t$dataSource_providerType"
+					puts $OUTPUT " Propiedades:"
+					set dataSource_J2EEResourceProperty [$AdminConfig list J2EEResourceProperty $dataSource_id]
+					set dataSource_J2EEResourceProperty_sort [lsort $dataSource_J2EEResourceProperty]
+					foreach J2EEResourceProperty $dataSource_J2EEResourceProperty_sort {
+ 
+						# La variable $allJ2EEResourcePropertyProperties saca todas las custom properties posibles de un Datasource
+						set allJ2EEResourcePropertyProperties [$AdminConfig showall $J2EEResourceProperty]
+ 
+						set J2EEResourceProperty_type [$AdminConfig showAttribute $J2EEResourceProperty type]
+						set J2EEResourceProperty_name [$AdminConfig showAttribute $J2EEResourceProperty name]
+						set J2EEResourceProperty_value [$AdminConfig showAttribute $J2EEResourceProperty value]
+ 
+						if {[regexp "URL" $J2EEResourceProperty_name]} {
+							puts $OUTPUT_JACL "    		\{$J2EEResourceProperty_name $J2EEResourceProperty_type $J2EEResourceProperty_value\} \\"
+						}
+ 
+						puts " - Nombre:\t\t$J2EEResourceProperty_name"
+						puts " - Valor:\t\t$J2EEResourceProperty_value"
+						puts $OUTPUT " - Nombre:\t\t$J2EEResourceProperty_name"
+						puts $OUTPUT " - Valor:\t\t$J2EEResourceProperty_value"
+					}
+					puts " Datos de \"Connection pool\":"
+					puts " - Timeout:\t\t$connectionPool_connectionTimeout"
+					puts " - Conexiones max.:\t$connectionPool_maxConnections"
+					puts " - Conexiones min.:\t$connectionPool_minConnections"
+					puts " - Reap time:\t\t$connectionPool_reapTime"
+					puts " - Unused timeout:\t$connectionPool_unusedTimeout"
+					puts " - Aged timeout:\t$connectionPool_agedTimeout"
+					puts " - Purge policy:\t$connectionPool_purgePolicy"
+					puts ""
+					puts $OUTPUT " Datos de \"Connection pool\":"
+					puts $OUTPUT " - Timeout:\t\t$connectionPool_connectionTimeout"
+					puts $OUTPUT " - Conexiones max.:\t$connectionPool_maxConnections"
+					puts $OUTPUT " - Conexiones min.:\t$connectionPool_minConnections"
+					puts $OUTPUT " - Reap time:\t\t$connectionPool_reapTime"
+					puts $OUTPUT " - Unused timeout:\t$connectionPool_unusedTimeout"
+					puts $OUTPUT " - Aged timeout:\t$connectionPool_agedTimeout"
+					puts $OUTPUT " - Purge policy:\t$connectionPool_purgePolicy"
+					close $OUTPUT
+ 
+					puts $OUTPUT_JACL "	\} \\"
+					puts $OUTPUT_JACL "\}"
+					puts $OUTPUT_JACL "\$AdminConfig save"
+					close $OUTPUT_JACL
+					}
+			}
+		}
+ 
+		#######################################################################
+		# FIN: SECCION LISTADO Y CONFIGURACION DE DATASOURCES
+		#######################################################################
+ 
+		########################################################################
+		# INICIO: SECCION LISTADO Y CONFIGURACION DE URLs
+		########################################################################
+		puts " \[Lista de URLs\]"
+		puts ""
+		set URLs [$AdminConfig list URL $cellId]
+		set URLs_sort [lsort $URLs]
+		foreach url_id $URLs_sort {
+ 
+			# La variable $allURLproperties saca todas las propiedades posibles de una URL
+			set allURLproperties [$AdminConfig showall $url_id]
+ 
+			# Variables basicas de cada URL
+			set url_ambito_split [lindex [split $url_id |] 0]
+			set url_ambito [lindex [split $url_ambito_split (] 1]
+			set url_provider_id [$AdminConfig showAttribute $url_id provider]
+			set url_provider_name [$AdminConfig showAttribute $url_provider_id name]
+			set url_name [$AdminConfig showAttribute $url_id name]
+			set url_jndiName [$AdminConfig showAttribute $url_id jndiName]
+			set url_spec [$AdminConfig showAttribute $url_id spec]
+			set url_dir "$node_dir/URLs"
+			if { [file exists $url_dir] != "1" } {file mkdir $url_dir}
+			set url_out_log $url_dir/$url_name.log
+			set OUTPUT [open $url_out_log w+]
+ 
+			puts " ========================================"
+			puts "  URL: $url_name"
+			puts " ========================================"
+			puts " Ambito:\t\t$url_ambito"
+			puts " Provider:\t\t$url_provider_name"
+			puts " JNDI Name:\t\t$url_jndiName"
+			puts " Specification:\t\t$url_spec"
+			puts ""
+			puts $OUTPUT " ========================================"
+			puts $OUTPUT "  URL: $url_name"
+			puts $OUTPUT " ========================================"
+			puts $OUTPUT " Ambito:\t\t$url_ambito"
+			puts $OUTPUT " Provider:\t\t$url_provider_name"
+			puts $OUTPUT " JNDI Name:\t\t$url_jndiName"
+			puts $OUTPUT " Specification:\t\t$url_spec"
+			close $OUTPUT
+		}
+		########################################################################
+		# FIN: SECCION LISTADO Y CONFIGURACION DE URLs
+		########################################################################
+ 
+		###############################################################################################
+		# INICIO: SECCION LISTADO Y CONFIGURACION DE RESOURCE ADAPTERS - J2C ACTIVATION SPECIFICATIONS
+		###############################################################################################
+		puts " \[Lista de J2C activation specifications\]"
+		puts ""
+		set J2CActSpec [$AdminConfig list J2CActivationSpec $cellId]
+		set J2CActSpec_sort [lsort $J2CActSpec]
+		foreach J2CActSpec_id $J2CActSpec_sort {
+ 
+			# La variable $allJ2CActSpecProperties saca todas las propiedades posibles de un J2C activation specification
+			set allJ2CActSpecProperties [$AdminConfig showall $J2CActSpec_id]
+ 
+			# Variables basicas de cada J2C activation specification
+			set J2CActSpec_ambito_split [lindex [split $J2CActSpec_id |] 0]
+			set J2CActSpec_ambito [lindex [split $J2CActSpec_ambito_split (] 1]
+			set J2CActSpec_name [$AdminConfig showAttribute $J2CActSpec_id name]
+			set J2CActSpec_jndiName [$AdminConfig showAttribute $J2CActSpec_id jndiName]
+			set J2CActSpec_destinationJndiName [$AdminConfig showAttribute $J2CActSpec_id destinationJndiName]
+			set J2CActSpec_authenticationAlias [$AdminConfig showAttribute $J2CActSpec_id authenticationAlias]
+			set J2CActSpec_dir "$node_dir/J2C_activation_specifications"
+			if { [file exists $J2CActSpec_dir] != "1" } {file mkdir $J2CActSpec_dir}
+			set J2CActSpec_out_log $J2CActSpec_dir/$J2CActSpec_name.log
+			set OUTPUT [open $J2CActSpec_out_log w+]
+ 
+			puts " ============================================================"
+			puts "  J2C activation specification: $J2CActSpec_name"
+			puts " ============================================================"
+			puts " Ambito:\t\t$J2CActSpec_ambito"
+			puts " JNDI Name:\t\t$J2CActSpec_jndiName"
+			puts " Alias de aut.:\t\t$J2CActSpec_authenticationAlias"
+			puts " Destination JNDI Name: $J2CActSpec_destinationJndiName"
+			puts " Propiedades:"
+			puts $OUTPUT " ============================================================"
+			puts $OUTPUT "  J2C activation specification: $J2CActSpec_name"
+			puts $OUTPUT " ============================================================"
+			puts $OUTPUT " Ambito:\t\t$J2CActSpec_ambito"
+			puts $OUTPUT " JNDI Name:\t\t$J2CActSpec_jndiName"
+			puts $OUTPUT " Alias de aut.:\t\t$J2CActSpec_authenticationAlias"
+			puts $OUTPUT " Destination JNDI Name: $J2CActSpec_destinationJndiName"
+			puts $OUTPUT " Propiedades:"
+			set J2CActSpec_resourceProperties [$AdminConfig list J2EEResourceProperty $J2CActSpec_id]
+			set J2CActSpec_resourceProperties_sort [lsort $J2CActSpec_resourceProperties]
+			foreach J2CActSpecResourceProperty $J2CActSpec_resourceProperties_sort {
+ 
+				# La variable $allJ2CActSpecResourcePropertyProperties saca todas las custom properties posibles de un J2C activation specification
+				set allJ2CActSpecResourcePropertyProperties [$AdminConfig showall $J2CActSpecResourceProperty]
+ 
+				set J2CActSpecResourceProperty_name [$AdminConfig showAttribute $J2CActSpecResourceProperty name]
+				set J2CActSpecResourceProperty_value [$AdminConfig showAttribute $J2CActSpecResourceProperty value]
+ 
+				puts " - Nombre:\t\t$J2CActSpecResourceProperty_name"
+				puts " - Valor:\t\t$J2CActSpecResourceProperty_value"
+				puts $OUTPUT " - Nombre:\t\t$J2CActSpecResourceProperty_name"
+				puts $OUTPUT " - Valor:\t\t$J2CActSpecResourceProperty_value"
+			}
+			puts ""
+			close $OUTPUT
+		}
+		###############################################################################################
+		# FIN: SECCION LISTADO Y CONFIGURACION DE RESOURCE ADAPTERS - J2C ACTIVATION SPECIFICATIONS
+		###############################################################################################
+ 
+		###############################################################################################
+		# INICIO: SECCION LISTADO Y CONFIGURACION DE RESOURCE ADAPTERS - J2C ADMINISTERED OBJECTS
+		###############################################################################################
+		puts " \[Lista de J2C administered objects\]"
+		puts ""
+		set J2CAdmObj [$AdminConfig list J2CAdminObject $cellId]
+		set J2CAdmObj_sort [lsort $J2CAdmObj]
+		foreach J2CAdmObj_id $J2CAdmObj_sort {
+			# La variable $allJ2CAdmObjProperties saca todas las propiedades posibles de un J2C administered object
+			set allJ2CAdmObjProperties [$AdminConfig showall $J2CAdmObj_id]
+ 
+			# Variables basicas de cada J2C administered object
+			set J2CAdmObj_ambito_split [lindex [split $J2CAdmObj_id |] 0]
+			set J2CAdmObj_ambito [lindex [split $J2CAdmObj_ambito_split (] 1]
+			set J2CAdmObj_name [$AdminConfig showAttribute $J2CAdmObj_id name]
+			set J2CAdmObj_jndiName [$AdminConfig showAttribute $J2CAdmObj_id jndiName]
+			set J2CAdmObj_dir "$node_dir/J2C_administered_objects"
+			if { [file exists $J2CAdmObj_dir] != "1" } {file mkdir $J2CAdmObj_dir}
+			set J2CAdmObj_out_log $J2CAdmObj_dir/$J2CAdmObj_name.log
+			set OUTPUT [open $J2CAdmObj_out_log w+]
+ 
+			puts " ============================================================"
+			puts "  J2C administered object: $J2CAdmObj_name"
+			puts " ============================================================"
+			puts " Ambito:\t\t$J2CAdmObj_ambito"
+			puts " JNDI Name:\t\t$J2CAdmObj_jndiName"
+			puts " Propiedades:"
+			puts $OUTPUT " ============================================================"
+			puts $OUTPUT "  J2C administered object: $J2CAdmObj_name"
+			puts $OUTPUT " ============================================================"
+			puts $OUTPUT " Ambito:\t\t$J2CAdmObj_ambito"
+			puts $OUTPUT " JNDI Name:\t\t$J2CAdmObj_jndiName"
+			puts $OUTPUT " Propiedades:"
+			set J2CAdmObj_resourceProperties [$AdminConfig list J2EEResourceProperty $J2CAdmObj_id]
+			set J2CAdmObj_resourceProperties_sort [lsort $J2CAdmObj_resourceProperties]
+			foreach J2CAdmObjResourceProperty $J2CAdmObj_resourceProperties_sort {
+ 
+				# La variable $allJ2CAdmObjResourcePropertyProperties saca todas las custom properties posibles de un J2C administered object
+				set allJ2CAdmObjResourcePropertyProperties [$AdminConfig showall $J2CAdmObjResourceProperty]
+ 
+				set J2CAdmObjResourceProperty_name [$AdminConfig showAttribute $J2CAdmObjResourceProperty name]
+				set J2CAdmObjResourceProperty_value [$AdminConfig showAttribute $J2CAdmObjResourceProperty value]
+ 
+				puts " - Nombre:\t\t$J2CAdmObjResourceProperty_name"
+				puts " - Valor:\t\t$J2CAdmObjResourceProperty_value"
+				puts $OUTPUT " - Nombre:\t\t$J2CAdmObjResourceProperty_name"
+				puts $OUTPUT " - Valor:\t\t$J2CAdmObjResourceProperty_value"
+			}
+			puts ""
+			close $OUTPUT
+		}
+		###############################################################################################
+		# FIN: SECCION LISTADO Y CONFIGURACION DE RESOURCE ADAPTERS - J2C ADMINISTERED OBJECTS
+		###############################################################################################
+		puts ""
+	}
+}
