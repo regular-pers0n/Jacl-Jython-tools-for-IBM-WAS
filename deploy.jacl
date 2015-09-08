@@ -1,0 +1,63 @@
+#Lang: Jacl
+ 
+#
+# deploy.jacl v0.01
+# Copyleft - 2013  Javier Dominguez Gomez
+# Written by Javier Dominguez Gomez <jdg@member.fsf.org>
+# Madrid, Spain
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Info:		This Tcl program install, update or uninstall EAR files using wsadmin IBM WebSphere Application Server tool.
+#
+# Usage:	./wsadmin -f deploy.jacl [install|update|uninstall] /path/to/file.ear
+#
+ 
+set action [lindex $argv 0]
+set earFilePath [lindex $argv 1]
+set earFile [file tail $earFilePath]
+set cells [$AdminConfig list Cell]
+foreach cellId $cells {
+	set cname [$AdminConfig showAttribute $cellId name]
+	set nodes [$AdminConfig list Node $cellId]
+	foreach nodeId $nodes {
+		set nname [$AdminConfig showAttribute $nodeId name]
+		if {[regexp "dmgr" $nname]} {
+			set appManager [$AdminControl queryNames type=ApplicationManager,node=$nname,*]
+		} else {
+			if {[string match "install" $action] || [string match "update" $action]} {
+				set clusters [$AdminConfig list ServerCluster $cellId]
+				foreach clusterId $clusters {
+					set clusterName [$AdminConfig showAttribute $clusterId name]
+					if {[string match "install" $action]} {
+						set opts [subst {-appname $earFile -target $clusterName}]
+						$AdminApp $action $earFilePath $opts
+					}
+					if {[string match "update" $action]} {
+						set opts [subst {-operation update -contents $earFilePath -target $clusterName}]
+						$AdminApp $action $earFile app $opts
+					}
+					$AdminConfig save
+				}
+				$AdminControl invoke [$AdminControl completeObjectName type=NodeSync,node=$nname,*] sync
+				if {[info exists appManager]} { $AdminControl invoke $appManager startApplication $earFile }
+			}
+			if {[string match "uninstall" $action]} {
+				$AdminApp uninstall $earFile
+				$AdminConfig save
+				$AdminControl invoke [$AdminControl completeObjectName type=NodeSync,node=$nname,*] sync
+			}
+		}
+	}
+}
