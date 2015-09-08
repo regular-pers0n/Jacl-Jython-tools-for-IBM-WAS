@@ -1,0 +1,63 @@
+#Lang: Jacl
+ 
+#
+# processInfo.jacl v0.05
+# Copyleft - 2013  Javier Dominguez Gomez
+# Written by Javier Dominguez Gomez <jdg@member.fsf.org>
+# GnuPG Key: 6ECD1616
+# Madrid, Spain
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Info:		This Tcl program gets all JVM status info using wsadmin IBM WebSphere Application Server tool.
+#
+# Usage:	./wsadmin -f processInfo.jacl
+#
+ 
+#List all cells id
+set cells [$AdminConfig list Cell]
+foreach cellId $cells {
+	#List all nodes id
+	set nodes [$AdminConfig list Node $cellId]
+	foreach nodeId $nodes {
+		set cname [$AdminConfig showAttribute $cellId name]
+		set nname [$AdminConfig showAttribute $nodeId name]
+		#List all JVMs id
+		set servs [$AdminControl queryNames type=Server,cell=$cname,node=$nname,*]
+		puts "\nRunning JVMs on node '$nname': [llength $servs]\n"
+		foreach jvmId $servs {
+			set jvmName [$AdminControl getAttribute $jvmId name]
+			set jvmType [$AdminControl getAttribute $jvmId processType]
+			set jvmPid   [$AdminControl getAttribute $jvmId pid]
+			set jvmState [$AdminControl getAttribute $jvmId state]
+			set jvmQueryNames [$AdminControl queryNames type=JVM,cell=$cname,node=$nname,process=$jvmName,*]
+			set osName [$AdminControl invoke $jvmQueryNames getProperty os.name]
+			puts "\t$jvmName ($jvmType). PID: $jvmPid. Status: $jvmState. OS: $osName"
+			if {![regexp {(dmgr|nodeagent)} $jvmName]} {
+				#List all running applications id on a JVM
+				set apps [$AdminControl queryNames type=Application,cell=$cname,node=$nname,process=$jvmName,*]
+				#Total running applications least one (ibmasyncrsp).
+				set appsRunning [expr {[llength $apps]-1}]
+				puts "\tRunning applications on server '$jvmName': $appsRunning"
+				foreach app $apps {
+					set aname [$AdminControl getAttribute $app name]
+					if {![string match "ibmasyncrsp" $aname]} {
+						puts "\t\t$aname"
+					}
+				}
+			}
+			puts ""
+		}
+	}
+}
