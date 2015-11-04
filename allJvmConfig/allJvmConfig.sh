@@ -35,7 +35,6 @@ case $UNAME in
 esac
 
 JACL="allJvmConfig.jacl"
-LISTA="listaJVMs_${VERSION}.txt"
 
 clear
 printf "\n #######################\n"
@@ -65,6 +64,7 @@ cabecera () {
 
 WAS_HOME="/opt/IBM/websphere/AppServer${VERSION}"
 TC="$WAS_HOME/thinClient"
+LISTA="listaJVMs_${VERSION}.txt"
 
 if [ ! -d $WAS_HOME ];then echo "";echo " - ERROR: En esta maquina no hay WAS $VERSION";echo "";exit;fi
 if [ ! -f $LISTA ];then echo "";echo " - ERROR: No existe el archivo \"$LISTA\".";echo "";exit;fi
