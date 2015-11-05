@@ -1,4 +1,4 @@
-#!/bin/ksh
+#!/bin/bash
 
 # allJvmConfig.sh v1.0.21
 # Copyleft - 2013  Javier Dominguez Gomez
@@ -19,64 +19,33 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Info:		This Tcl program creates a Replication Domain that the session
-#		manager uses for replication of the dynamic cache service, and
-#		the stateful session bean failover components.
+# Info:         This Tcl program creates a Replication Domain that the session
+#               manager uses for replication of the dynamic cache service, and
+#               the stateful session bean failover components.
 #
-# Usage:	./allJvmConfig.sh
-
-HOSTNAME=`hostname`
-UNAME=`uname`
-
-case $UNAME in
-	SunOS) AWK=`echo "nawk"` ;;
-	AIX) AWK=`echo "awk"` ;;
-	Linux) AWK=`echo "awk"` ;;
-esac
+# Usage:        ./allJvmConfig.sh
 
 JACL="allJvmConfig.jacl"
+OUTPUT_DIR=`echo "$(basename $0 .sh)_Output"`
+WAS_HOME="/aplicaciones/websphere8/AppServer"
+TC="$WAS_HOME/thinClient"
+JVM_LIST=$1 #Optional
 
-clear
-printf "\n #######################\n"
-printf "  CONFIGURACION DE JVMs "
-printf "\n #######################\n\n"
-printf " 1. IBM WebSphere Application Server 6.1\n"
-printf " 2. IBM WebSphere Application Server 7.0\n"
-printf " 3. IBM WebSphere Application Server 8.0\n"
-printf " 4. IBM WebSphere Application Server 8.5\n"
-printf "\n Selecciona la version de WAS para la que quieres sacar la informacion: "
-read SEL
-
-case $SEL in
-	1) VERSION="6.1" ;;
-	2) VERSION="7.0" ;;
-	3) VERSION="8.0" ;;
-	4) VERSION="8.5" ;;
-	*) echo "";echo " ERROR: La opcion seleccionada no es valida.";echo"";exit ;;
-esac
-
-cabecera () {
-	echo ""
-	echo " ###############################################"
-	echo "  Configuracion completa de las JVMs en WAS $VERSION"
-	echo " ###############################################"
+header () {
+	LINE="------------------------------------------"
+	printf "\n %s\n  Complete JVM and resources configuration\n %s\n" $LINE $LINE
 }
 
-WAS_HOME="/opt/IBM/websphere/AppServer${VERSION}"
-TC="$WAS_HOME/thinClient"
-LISTA="listaJVMs_${VERSION}.txt"
-
-if [ ! -d $WAS_HOME ];then echo "";echo " - ERROR: En esta maquina no hay WAS $VERSION";echo "";exit;fi
-if [ ! -f $LISTA ];then echo "";echo " - ERROR: No existe el archivo \"$LISTA\".";echo "";exit;fi
-if [ ! -d $VERSION ];then mkdir $VERSION;fi
+if [ ! -d $WAS_HOME ];then printf "\n - ERROR: WAS not found in \"%s\".\n" $WAS_HOME;exit 1;fi
+if [ ! -d $OUTPUT_DIR ];then mkdir $OUTPUT_DIR;fi
 
 clear
-cabecera
+header
 if [ -f $TC/thinClient.sh ]
 	then
-		echo " [Usando ThinClient]"
-		$TC/thinClient.sh -f $JACL $VERSION $LISTA | egrep -v 'Connected|mediante|argv variable|variable argv'
+		printf " [Using ThinClient]\n"
+		$TC/thinClient.sh -f $JACL $OUTPUT_DIR $JVM_LIST
 	else
-		echo " [Usando wsadmin]"
-		$WAS_HOME/bin/wsadmin.sh -f $JACL $VERSION $LISTA | egrep -v 'Connected|mediante|argv variable|variable argv'
+		printf " [Using wsadmin]\n"
+		$WAS_HOME/bin/wsadmin.sh -f $JACL $OUTPUT_DIR $JVM_LIST
 fi
