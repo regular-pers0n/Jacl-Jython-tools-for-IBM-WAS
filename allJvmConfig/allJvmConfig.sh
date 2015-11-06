@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# allJvmConfig.sh v1.0.21
+# allJvmConfig.sh v1.0.23
 # Copyleft - 2013  Javier Dominguez Gomez
 # Written by Javier Dominguez Gomez <jdg@member.fsf.org>
 # GnuPG Key: 6ECD1616
@@ -32,8 +32,8 @@ TC="$WAS_HOME/thinClient"
 JVM_LIST=$1 #Optional
 
 header () {
-	LINE="------------------------------------------"
-	printf "\n %s\n  Complete JVM and resources configuration\n %s\n" $LINE $LINE
+	LINE="----------------------------"
+	printf "\n %s\n  Complete JVM configuration\n %s\n" $LINE $LINE
 }
 
 if [ ! -d $WAS_HOME ];then printf "\n - ERROR: WAS not found in \"%s\".\n" $WAS_HOME;exit 1;fi
@@ -44,8 +44,8 @@ header
 if [ -f $TC/thinClient.sh ]
 	then
 		printf " [Using ThinClient]\n"
-		$TC/thinClient.sh -f $JACL $OUTPUT_DIR $JVM_LIST
+		$TC/thinClient.sh -f $JACL $OUTPUT_DIR $JVM_LIST | egrep -v 'WASX7209I|WASX7303I'
 	else
 		printf " [Using wsadmin]\n"
-		$WAS_HOME/bin/wsadmin.sh -f $JACL $OUTPUT_DIR $JVM_LIST
+		$WAS_HOME/bin/wsadmin.sh -f $JACL $OUTPUT_DIR $JVM_LIST | egrep -v 'WASX7209I|WASX7303I'
 fi
