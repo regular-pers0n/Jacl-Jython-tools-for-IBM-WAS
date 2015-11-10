@@ -1,6 +1,6 @@
 #Lang: jacl
 
-# allJvmConfig.jacl v1.0.23
+# allJvmConfig.jacl v1.0.25
 # Copyleft - 2013  Javier Dominguez Gomez
 # Written by Javier Dominguez Gomez <jdg@member.fsf.org>
 # GnuPG Key: 6ECD1616
@@ -23,11 +23,11 @@
 #		manager uses for replication of the dynamic cache service, and
 #		the stateful session bean failover components.
 #
-# Usage:	./allJvmConfig.sh
+# Usage:	./allJvmConfig.sh -f [file] | -v | -h
 
 set outputDir [lindex $argv 0]
 set jvmList [lindex $argv 1]
-set hostname [info hostname]
+set selfName $argv0
 set cells [$AdminConfig list Cell]
 
 foreach cellId $cells {
