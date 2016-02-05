@@ -33,7 +33,29 @@ foreach cellId $cells {
 	    set dmgrId [$AdminConfig getid /Server:dmgr/]
 	    set dmgr [$AdminConfig list Server $dmgrId]
 	    set HTTPAccessLoggingService [$AdminConfig list HTTPAccessLoggingService $dmgr]
-	    $AdminConfig modify $HTTPAccessLoggingService {{enable true}}
+	    
+	    set accessLogProperties [lindex [$AdminConfig showAttribute $HTTPAccessLoggingService accessLog] 0]
+	    set accessLogProperties_sort [lsort $accessLogProperties]
+	    foreach accessLogProperty $accessLogProperties_sort {
+		    set accessLogFilePath [$AdminConfig showAttribute $accessLogProperty filePath]
+		    set accessLogMaximumBackupFiles [$AdminConfig showAttribute $accessLogProperty maximumBackupFiles]
+		    set accessLogMaximumSize [$AdminConfig showAttribute $accessLogProperty maximumSize]
+		    set accessLogAttrs [subst {{filePath "\${LOG_ROOT}/dmgr/access.log"}{maximumBackupFiles 1}{maximumSize 500}}]
+		    $AdminConfig modify $accessLogProperty $accessLogAttrs
+	    }
+	    
+	    set errorLogProperties [lindex [$AdminConfig showAttribute $HTTPAccessLoggingService errorLog] 0]
+	    set errorLogProperties_sort [lsort $errorLogProperties]
+	    foreach errorLogProperty $errorLogProperties_sort {
+		    set errorLogFilePath [$AdminConfig showAttribute $errorLogProperty filePath]
+		    set errorLogMaximumBackupFiles [$AdminConfig showAttribute $errorLogProperty maximumBackupFiles]
+		    set errorLogMaximumSize [$AdminConfig showAttribute $errorLogProperty maximumSize]
+		    set errorLogAttrs [subst {{filePath "\${LOG_ROOT}/dmgr/error.log"}{maximumBackupFiles 1}{maximumSize 500}}]
+		    $AdminConfig modify $errorLogProperty $errorLogAttrs
+	    }
+	    
+	    $AdminConfig modify $HTTPAccessLoggingService {{enable true}{enableAccessLogging true}{enableErrorLogging true}{accessLogFormat "COMMON"}{errorLogLevel "WARNING"}}
+	    
 	    $AdminConfig save
 	} else {
 	    $AdminControl invoke [$AdminControl completeObjectName type=NodeSync,node=$nname,*] sync
